@@ -1,0 +1,197 @@
+Title : Writeup for Project 2,Spring 2012
+Date: 02/25/12
+Group Num 3:  
+Name                     Email                   StudentID
+Shengzhe Chen     shengzhc@usc.edu       	4341396265
+Pei Chu           peichu@usc.edu            	4097373598
+I.Requirements:
+
+For the project2,we are supposed to implement multiprocess on the user level other than on kernel directly like project1.To do this, we must first implement the right user level lock and condition struct.And all the other system calls,such as create lock,fork,exec,exit and so on. After successful implementing these system calls,we should exec multiprocess on the user level and finally make the DoctorOffice as our user level process to prove the correctness of these system calls.
+
+II.Assumptions:
+
+Based on Project 1 assumptions not listed here for the system test, adding assumptions are below:
+1. Child and Parent have the same pid, and they are limited to 1-30 which means the first Adult patient will get the pid starting from 31.
+2. Total patients are limited to 256 since when we try to display the info of the patient, we parse the 8 bit value to represent the pid. We are only allowed to pass limited numbers of value to kernel, so we divide 1 int value to 4 parts to indicate 4 different variables to be displayed.
+3. As for Process, we assume that for the kernel , there is a process table and thread table to manage the resource kernel has. Each Process has their parent process and child process, when a process terminates, the child processes of the process should be informed and revise their parent process pointer to themselves in order to make themselves as the root. Besides, the parent process of the completed process should be reduced on child process counter. 
+4. As for thread, we assume, each thread should get 1024B from the machine's mainMemory to store their status, that is the only space we need to allocate for the thread, other code and data segment can be pinpointed at its parent thread's space. All in all, code and data segment are the same within the threads of the same process, they can find their OPs in the code segment and their data in data segment, both of them are loaded into mainMemory when we start a new process and load the value of the given format of "execute" file into our simulated Machine mainMemory. 
+5. For multiple programing, we have to implement a minimal functions of memory manage, we assume the physical capacity of the main memory is infinite so that we can load as many processes and threads as possible, although we limit the process quantity to 8.
+6. Actually, it seems that Nachos has provided the class for us to get input from console in the user-level, however, we implement a system call to implement the input value since we realize it in very late time.
+7. When encounter user mode error, we might to address with. Although we have the error type such as address error, bus error and so on, we implement a function called TerminateProcess to terminate the process, without interrupting the operations of other process. For example, a thread within in i process encounter a unknown parsing statement, it will terminate all the threads within the same process, leaving other processes' threads functioning correctly.
+8. When the very last thread exits, we use the judgement of main memory to shut down the machine. In other words, if main memory is totally free, no one occupies the main memory, we shut down the machine. We create a freeMemMap to manage the usage of main memory.
+9. We try to test the user-level error by using define a float value and try to do operations on the float value. It seems that Nachos user-level do not support the float, so it will raise a exception. The testing is to see what happens when an exception raises.  It just terminates its process, without interrupting other processes.
+10. We assume that the main memory is infinite, so before running, modify the NumPhysPages in machine.h as large as possible to loaded the executable file correctly.
+
+
+III.Design:
+
+1. Data
+
+For lock and condition, we need lock and condition table which are fixed system resources. When user try to create lock or condition, kernel will get one free lock/condition space from the kernel and return the index of the lock/condition in the table. The index is what user can operate. One more thing is that thread can not use the lock/condition outside the process, which means that the lock/condition created by the thread of process i, only the threads of process i can use the lock/condition. For multiple programming, we need a process table and a thread table, we create a structure for each process, and use the Table class the manage the process and table. For Simulation of the doctor office, data is the same as the project1, except for some points unable to be presented by user-level code. For example, we implement the "Queue" for the insert and remove of exam sheet and use a fixed size of ES stack, which you can think that the office has limited exam sheets to be offered.
+
+2. Logic
+
+2.1 Lock and Condition:The user level lock an condition variables are different from the kernel level.We should provide the interface for user level to user the kernel lock and condition.First we design the KernelLock and KernelCondition data structure as a data type for the user level interface to use.Then,in the exception.cc file,we add system calls for lock and condition.They are as bellows:CreateLock_Syscall, DestroyLock_Syscall, AcquireLock_Syscall, ReleaseLock_Syscall, CreateCondition_Syscall, DestroyCondition_Syscall, WaitCondition_Syscall, SignalCondition_Syscall, BroadcasstCondition_Syscall.To implement the four lock system calls,we all first acquire the lockTable lock from the kernel and perform corresponding operation for the new lock.Since the lock id could mark lock uniquely on the locatable,we can use it by its id num from the user level.To implement the five condition system calls,we also first acquire the conditonTable lock from the kernel and do the corresponding operation for the condition.There is also an id number for each condition to uniquely mark it on the condition table.In the sys call.h file,there are corresponding system call number for them,such as SC_CreateLock 12, SC_CreateCondition 16 and so on.Thus, in the ExceptionHandler function within exception.cc,there are different cases for each system call. The user level could use this lock and condition variables directly.For example,Acquire(lock1) and SignalCondition(cv1,lock1).
+
+2.2.1 Fork: the function of Fork system call is to rise a new user thread, and run the given function. Actually, as for nachos, it only knows threads, the kernel thread, which is a thread class. And in the eye of Nachos, the code we have to run is a bunch of 32 bit value, each of the value is special and having its own meaning. Nachos will parse this value and take the correct step to simulate the operation of CPU Controller. So here what we have to do is to address with the ProcessTable, Allocating a new Stack and Fill the thread table. After that, we can create a new kernel thread, which will run the special value we mentioned above, using machine->run(). This kernel thread will not terminate, even at the end of your user function with Exit(0). Since the machine->run() will not stop itself. So we need another strategy to stop the thread, mentioning step ahead. We allocate the new stack in mainMemory, first finding a free and continuous 1024B space, which is 8 pages, each page is 128B. When mainMemory has the space, we assign this space to the new thread's stack, and set the freeMemMap to indicate this area is used. Note that the new thread's stack is for user program only, it is an abstract concept, and the space is only useful for machine.
+
+2.2.2 Exec: the function of Exec system call is to create a new process, of course within a main thread. Here, the concept of process is rather abstract, it can be regarded just as a group of threads for Nachos. What is most important in Exec is the addrspace. We have mentioned above what is the addrspace. So what we need to do is to make sure a existing executable file in the Unix disk(distinguishing from the Nachos disk) can be loaded into mainMemory. Once the executable file is loaded into mainMemory, it is guaranteed that this area in the mainMemory can be used by threads, and this area is filled with the code(32 bit value) data, and the stack for the main thread of this new process. And then, we might have to create a kernel thread for the main thread of the process to run the machine command. Be sure to address with the process table, thread table, and main memory management.
+
+2.2.3 Exit: the function of Exit system call is a label to tell the nachos that the function is reaching the end, and you should do some cleaning work. As I mentioned above, the kernel thread will not terminate, so when it runs to "Exit", we should tell the thread to finish. Before finishing the thread, we have to wait for the child threads of current threads, since a thread can terminate until it has no child threads running. After that, we have to clean the main memory of the thread stack, if the thread is the main thread of a process, we as well have to deallocate the addrspace in memory and revise the process table. Details can be seen on the code.
+
+3. Simulation:After all the fundamental system calls have been implemented,we can use them to simulate the DoctorOffice process as the user level process to achieve multiprocess and multithread goal.The user interface will ask you to run how many process as the same time.For each process, it is an independent one while the CPU can correctly synchronize the threads of different process.We change all the kernel use of the DoctorOffice to user level use and make it as the system test in the test directory.
+
+4.Besides,for user level convenience, we also design Print_Syscall and GetInput_Syscall for output and input.There is also a Random_Syscall for user level random function to create random number for patient age.
+
+IV.Implementation:
+
++Files Modified
+machine.h machine.cc
+addrspace.cc addrspace.h
+bitmap.cc bitmap.h
+exception.cc
+progtest.cc
+syscall.h
+start.s
+system.cc system.h
+thread.h thread.cc
+scheduler.h scheduler.cc
+list.h list.cc
+
++Files added
+DoctorOffice.c DoctorOffice.h
+p1.c p2.c p3.c
+part1_test.c part2_test.c
+Simulation.c
+
++Data Structure added (except the struct already defined in Project1)
+
+struct KernelLock {                        -------------system.h
+    Lock *lock;
+    AddrSpace *addrSpace;
+    bool isDeleted;
+    bool isToBeDeleted;
+};
+
+struct KernelCondition {                  -------------system.h
+    Condition *condition;
+    AddrSpace *addrSpace;
+    bool isDeleted;
+    bool isToBeDeleted;
+};
+
+struct ProcessBlock {                       -------------system.h
+    
+    int childProcessId;
+    AddrSpace *childAddrSpace;
+};
+
+struct Process {                                -------------system.h
+    
+    int childProcessCount;
+    AddrSpace *parentAddrSpace;
+    int processId;
+    List *childProcessList;
+    Lock *processLock;
+};
+
++Data Structure modified
+
++Functions added
+
+void info(Thread *t);            -------exception.cc
+void Print_Syscall(unsigned int vaddr, int length,int args,int value);  ------exception.cc
+int CreateLock_Syscall(unsigned int vaddr, int length);     ------exception.cc
+int DestroyLock_Syscall(int lockid);      ------exception.cc
+int AcquireLock_Syscall(int lockid);     ------exception.cc
+int ReleaseLock_Syscall(int lockid);       ------exception.cc
+int CreateCondition_Syscall(unsigned int vaddr, int length);      ------exception.cc
+int DestroyCondition_Syscall(int cvid);        ------exception.cc
+int WaitCondition_Syscall(int cvid, int lockid);      ------exception.cc
+int SignalCondition_Syscall(int cvid, int lockid);         ------exception.cc
+int BroadcastCondition_Syscall(int cvid, int lockid);        ------exception.cc
+void Fork_Thread(int arg);         ------exception.cc
+void Fork_Syscall(unsigned int faddr);        ------exception.cc
+void Yield_Syscall();        ------exception.cc
+void Exit_Syscall(int status);          ------exception.cc
+void Exec_Thread(int arg);           ------exception.cc
+int Exec_Syscall(unsigned int vaddr, int length);      ------exception.cc
+int Random_Syscall(int seed);      ------exception.cc
+void TerminateProcess();			--- exception.cc
+bool BitMap::IsAllClear();        ---------bitmap.cc
+int BitMap::FindPages(int pages)      -------bitmap.cc
+void Parent( );   --- DoctorOffice.c
+void Child( );	--- DoctorOffice.c
+void WaitingRoomNurse( ); --- DoctorOffice.c
+void Patient( );	--- DoctorOffice.c
+void Nurse( );	--- DoctorOffice.c
+void Doctor( );	--- DoctorOffice.c
+void XRayTechnician( ); --- DoctorOffice.c
+void GlobalVariablesInit();	--- DoctorOffice.c
+void GlobalVariablesClean();	--- DoctorOffice.c
+int HospitalGetInput();	--- DoctorOffice.c
+int AllocateNewStack(); --- addrspace.c
+int DeallocateStack();	--- addrspace.c	
+void RemoveThread(int pid); --- scheduler.c
+int GetCount();	--- list.c
+void t1();    -----p2.c
+void t2();    -----p2.c
+void t1_t1();    -----part1_test.c
+void t1_t2();    -----part1_test.c
+void t2_t1();    -----part1_test.c
+void t2_t2();   -----part1_test.c
+void t2_t3();   -----part1_test.c
+void t3_t1();   -----part1_test.c
+void t3_t2();   -----part1_test.c
+void t3_t3();    -----part1_test.c
+void t4_t1();   ------part1_test.c
+void t4_t2();   -----part1_test.c
+void test1();    -----part2_test.c
+void test2();   -----part2_test.c
+void test3();   -----part2_test.c
+void test4();   -----part2_test.c
+void test5();   -----part2_test.c
+void test6();   -----part2_test.c
+int FindPages(int pages);           ---------system.cc
+int ClearPages(int start, int pages);      ---------system.cc
+
++Functions modified
+
+void ExceptionHandler(ExceptionType which);        ------exception.cc
+AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles);        -----addrspace.cc
+void StartProcess(char *filename) ;          ---------progtest.cc
+Machine::Machine(bool debug);             --------machine.cc
+
+V.Testing:
+
+1.part1_test
+
+For part1_test,user should use the command "nachos -x ../test/part1_test" within userprog directory.
+The output will print the lock and condition use information of different thread and as well test the console input function and user error.  
+
+2.part2_test
+
+For part2_test, user should use the command "nachos -x ../test/part2_test" within userprog directory.
+The output will print the Exec and Fork sys call information of different process and thread and test the error of User Mode.
+
+3.part3 test
+
+For part3 test, user should user the command "nachos -x ../test/Simulation" within userprog directory.
+The output will ask the user to input the number of simulation process and display the interactive information between different threads of DoctorOffice process.The interactive information maybe repeated because they come from different DoctorOffice process and the cpu execs these processes simultaneously.
+
+VI.Discussion:
+
++Experiment expectation
+1. The part1_test could print the use information of lock and condition in a certain order and the design error could be displayed expectedly. The part2_test could fork and exec process and thread correctly and the print lines should be in a certain order.Besides,the output should demonstrate the user level error cannot crash the kernel through.
+2. Simulation. This part, we test 1 process and 2 processes cases. First, type 1 for the process quantity, and input the quantities of different roles, we expect the correct execution stream of the Doctor Office. And then, we go on running the same program with 2 process quantity, and inputting the quantities of roles, trying to get the corresponding outcome.
+3. Since in order to stop the machine itself, we try to make the readyList of scheduler null, and halt the machine. In this case, we set each role can run 1000 times if necessary. So do not put too many patients(probably do not exceed 40), so that 1000 times are adequate for each role. It is reasonable that each role can not work too much time.
+
++Experiment Result
+As same as the experiment expectation.
+
++Explanation
+The part1_test output proves that the user level lock and condition variables have been implemented correctly.To prove this,the user level must use the system calls,such as createLock, createConditon, Exit and so on,correctly.Thus, it demonstrates the correctness of the systemcalls. The part2_test output proves that the Fork and Exec system calls can be used correctly.Through various combination of process and thread,such as one process fork a thread,multiprocess fork multithread and so on,the test justifies the system calls perform properly.Besides,if one process stops unexpectedly,the other processes can run continuously.
+
+VII.Miscellaneous:
+1. The simulation test could stop itself, we use a fixed number in the loop which you can regard it as the notion of one day work. 
+2. Actually, we might encounter a problem when having 3 processes with 15 patients, 14 patients, 11 patients each, and with 2 doctors, 5 nurses, 2 X-rays, 5 exam rooms. Only this case might not work with within process 1, till now, no solutions have been figured out. However other cases are working well, only this one and typing in this order. Same case with typing in different order works well, so it is wield. 

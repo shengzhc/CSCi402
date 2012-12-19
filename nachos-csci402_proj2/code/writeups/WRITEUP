@@ -1,0 +1,537 @@
+Title: Writeup for Project 1,Spring 2012
+Date:  02/02/2012
+Group Num3: Name                       Email                               StudentID
+                      Shengzhe Chen        shengzhc@usc.edu      4341396265
+                      Pei Chu                    peichu@usc.edu             4097373598
+
+I.Requirements:
+
+According to the assignment statement,we need to stimulate a hospital system. There are six roles respectively standing for six threads. Based on each role's description,we should control the six threads properly to ensure the reasonable interaction between two roles.Obviously, there are some "shared resources",such as the examine room and waiting room nurse. So we are supposed to use lock mechanism,condition variable and monitor variable to avoid race condition and achieve mutual exclusion. 
+
+II.Assumptions:
+
+Waiting Room Nurse:
+1. The WRN doesn't need to wait while the nurse is broadcasting patient id.
+2. After giving an examine sheet to a nurse, the WRN will be "free".
+3. For testing cases 1 to 6, there are some assumptions on the entity number. The fixed number can be seen in the CODE. This action is to simplify the output.
+
+Nurse:
+1. After a nurse escorts the patient to cashier, the nurse can go away.
+2. If a patient needs to take a X-ray, the nurse will first check the X-ray technician status to make sure whether a X-ray technician is available.If not, the patient will wait in the examine room until a x-ray technician is available. 
+3. A nurse will not wait if there is no examine sheet to take away from Waiting Room Nurse.
+
+Patient:
+1. After given a shot, the patient will get a relax and maybe another nurse escort this patient to cashier.
+2. Parent's id equals child  patient's id.
+3. Child patient's id is smaller than all adult patients' id,but the sequencing of them is may not be this order.
+4. Child patient's age is between 5 and 14.
+5. Adult patient's age is larger than 14.
+6. Patient's name is id+'A'.
+7. After taking X-ray, if there is no nurse available to escort the patient away,the patient will wait in the X-ray waiting room.
+8. If a patient needs both X-ray and shot, the sequencing is X-ray and shot.
+
+Doctor:
+Doctor puts the examine sheet into the wall pocket directly after diagnose.
+
+Other assumption:
+1. The examine room is occupied until the patient is escorted to cashier.
+2. there is a cashier waiting room for patient to queue.
+3. There is a X-ray waiting room for patient to wait nurse after finishing X-ray.
+
+III. Design:
+
+1. Data
+	
+	ExamSheet is the most important part, since it has plentiful information about the patient,what the patient should do and what the patient has done. Especially, ExamSheet is the shared data area between different roles. For example, as for patient and nurse, they hold a pointer to a ES. Certainly, patient holds "myExamSheet", which is the name we used in our program, is the pointer to the Patient's specific ExamSheet. Beside, Nurse has a ExamSheet pointer called "holdingES", which can be assigned to different value, it means a nurse can offer service to different patients, so the value of "holdingES" is changeable, but the data the pointer points to is a shared data zone which needs to be mutual exclusive and some attributes of the ES can be used as a sequencing indicator.
+	Another important aspect data is the "Lock" and "Condition" where "Lock" controls the access to the shared data which I prefer to call the Monitor variables or other shared "memory" that does not need sequencing and the "Condition" controls the sequencing of interactive threads. Before writing, being familiar with the true meaning of these two "CONCEPT" is quite helpful. 
+
+2. Logic
+	From the whole scope, the user interface is a "choice" plane, which enables the user to choose an option to invoke one "case" to run. In order to be compatible with the requirement of this homework, we should be able to stop the "testing case" in order to run other case without typing "nachos" again and again. So what we implement is to keep the track of all the threads pointers and then at some point to delete the sleeping threads and the ready threads in Ready Queue. Details about this part of implementation could be seen in the CODE. In addition, the output of all the testing , we implement the output sentence with different DEBUG flag so that in each case, it is easy to find the data you want.
+	Actually, the crucial role in Project 1 is Patient, first, forget the Child and Parent, the difference between the Child and Patient lays on the interactions. Adult Patient talks with other guys directly, whereas Child patients can only talk to their parent. So here, we can regard the Parents as the actually Adult patient, and there is no need to modify other roles' behavior such as Nurse, XRayTechnician, etc. So we can draw the picture from Patient, and through the whole real process of a hospital treatment, we can easily to figure out the interactions between Patient and other roles. So a big question is that program is not a real person, computer is unable to acknowledge the next expecting thing to do. In this case, we need to assign some "indicators" such as xrayStatus, esStatus, and so on to "switch" or in  other words to direct the patient to do the "right" thing. Here we also need to consider the sequencing issues between different roles. Next part I would like to use pseudo code to roughly explain these roles and the detail implementation can be seen in the CODE file we upload.
+
+2.1 
+Parent
+{ 
+	// Find Child & Wait for the Child's Signal
+	// Enter the WaitingRoom
+	// Wait in Line in the WaitingRoom
+	// Get Service from WRN
+	// Get the Form.
+	// Fill the Form. (here it is required to yield self, to let other guys go ahead)
+	// Wait in Line for Submitting
+	// Hand in the form
+	// Wait for Nurse calling( Long time Waiting…)
+	// Wake up by Nurse broadCast( Here, what I implement is that all the "Completed" patients are waiting in a CV's QUEUE, and when the Nurse comes to get one out of it, the nurse will broadcast a unique number that each patient has, and then each patient check the number with the number they own to decide which one is the called one)
+
+	// Find Child & Wait for the Child's Signal
+	// Enter ER 
+	// Tell the symptom
+	// Long Waiting in the ER.
+	while(true)
+	{ 
+		/* Do case switch or Condition choose*/
+		// Doctor First Diagnose;
+		// Doctor 2nd Diagnose;
+		// Nurse escorts to XRAY room and back; (these two actions are associated)
+		// Nurse gives a shot;
+		// Nurse escorts to Cashier; (break;)
+		// Waiting in ER.
+	}
+	
+	// Go out of ER and Wait in the Cash waiting Room
+	// Pay and leave
+} 
+
+2.2
+Child
+{
+	// Long time Wait
+	while(true)
+	{
+		/* Do case switch or Condition choose*/
+		// Enter WR
+		// Go with Parent
+		// Be diagnosing by Doctor
+		// Be informed Xray
+		// Be informed Shot
+		// Be informed Diagnose done
+		// Be informed move on Xray
+		// Be informed Xray-Image taken
+		// Be informed Nurse-Shot
+		// Be informed 2nd Diagnose of Doctor
+		// Be informed to leave (break;)
+	}
+}
+
+2.3
+WaitingRoomNurse
+{
+	while(true)
+	{
+		if(/* WaitingCounts in WR > 0)
+		{
+			// Give the Service
+			// the Interaction includes the GIVEFORM and GETFORM behaviors.
+		
+		}
+		else
+		{
+			// Service the Nurse
+			if(/* Some Nurse is waiting there */)
+				// Give a form
+			
+		}
+	}
+}
+
+2.4
+Patient
+{
+	// Enter the WaitingRoom
+	// Wait in Line in the WaitingRoom
+	// Get Service from WRN
+	// Get the Form.
+	// Fill the Form. (here it is required to yield self, to let other guys go ahead)
+	// Wait in Line for Submitting
+	// Hand in the form
+	// Wait for Nurse calling
+	// Wake up by Nurse broadCast
+	// Enter ER 
+	// Tell the symptom
+	// Long Waiting in the ER.
+	while(true)
+	{ 
+		/* Do case switch or Condition choose*/
+		// Doctor First Diagnose;
+		// Doctor 2nd Diagnose;
+		// Nurse escorts to XRAY room and back; (these two actions are associated)
+		// Nurse gives a shot;
+		// Nurse escorts to Cashier; (break;)
+		// Waiting in ER.
+	}
+	
+	// Go out of ER and Wait in the Cash waiting Room
+	// Pay and leave
+
+}
+
+2.5
+Nurse
+{
+	while(true)
+	{	
+		if(/* there is a empty ER */)
+		{
+			if(/* there is Completed form */)
+			{
+				// Get A form
+				// BroadCast the ID in the form to wake up the right patient
+				// Take the patient to the ER
+				// Take the temperature and blood pressure of the patient
+				// Ask the patient's symptom
+				// Write down all the information
+				// Put the ES into the wall packet
+				if(/* a doctor is available */)
+					// inform a doctor to come
+			}
+		}
+		
+		if(/* someone is in the X-ray waiting room */)
+			//escort one patient back to ER
+		
+		//Check the wall packets
+		{
+			if(/* some need a diagnose */)
+				if(/* A doctor is free */)
+					// inform a doctor to come
+	
+			if(/* some need a shot */)
+				// Go to get the medicine and give the shot
+			
+			if(/* some need a X-ray */)
+				if(/* A X-ray is free */)
+					// escort the patient to x-ray
+			
+			if(/* all the things are done */)
+				// escort the patient to cashier waiting roo
+						
+		}
+	
+	}
+}
+
+2.6 
+Doctor
+{
+	while(true)
+	{
+		// long time wait until a nurse wakes self up
+		// go to the ER and give diagnose
+		// Check the wall packets to decide which diagnose should be given
+		if(/* no diagnose before */)
+			// give the first diagnose and decide the X-ray and shot
+		else
+		{
+			// According to the X-ray images to note down the x-ray result
+		}
+	}
+}
+
+2.7
+XRayTechnician
+{
+	while(true)
+	{
+		// long time wait until a nurse wakes self up
+		// get the patient ES
+		for(/* xrayImages that required */)
+			// move and take
+		// Ask the patient to wait in the X-ray waiting room
+	}
+}
+
+2.8
+Cashier
+{
+	while(true)
+	{
+		if(/* some is in the waiting room */)
+		{
+			// Get the ES
+			// Calculate the totalAmount
+			// Wait for paying
+			// Get the payment and give the receipt
+			// delete the ES to release the space
+		}
+	}
+}
+
+IV. Implementation:
+
++ Files Modified
+
+	1. synch.h
+	2. synch.cc
+
++ Files added
+
+	1. GlobalVariables.h
+	2. HospitalTest.cc
+
++ Data Structures added, and the file they were added to 
+
+    1. enum WRNSTATUS 						------- GlobalVariables.h
+	  { 
+		WRNFREE = 0,
+		WRNBUSY = 1
+	  }; 
+												
+	2. enum WRNTASK 							   ------- GlobalVariables.h
+		{ 
+			NONE = 0,
+			GETFORMAP = 1,
+			GETFORMCP = 2,
+			GIVEFORM = 3
+		}; 
+
+    3. enum ERSTATUS 						-------- GlobalVariables.h
+	  { 
+		ERFREE = 0, 
+		ERBLOCKED = 1
+	  }; 
+
+	4. enum SYMPTOM 								-------- GlobalVariables.h
+		{ 
+			SYMPAIN = 0, 
+			SYMNAUSEA = 1, 
+			SYMHEAR = 2,  
+			SYMNOTHING = 3
+		}; 
+
+	5. enum XRAYSTATUS 							-------- GlobalVariables.h
+		{  
+			XRAYUNKNOWN = 0, 
+			XRAYREQUIRED = 1, 
+			XRAYUNREQUIRED = 2, 
+			XRAYHALFDONE = 3, 
+			XRAYDONE = 4
+		};
+										
+	6. enum SHOTSTATUS							--------- GlobalVariables.h 
+		{ 
+			SHOTUNKNOWN = 0, 
+			SHOTREQUIRED = 1, 
+			SHOTUNREQUIRED = 2, 
+			SHOTDONE = 3
+		};
+											
+	7. enum ESSTATUS 								--------- GlobalVariables.h
+		{ 
+			ESUNFINISHED = 0, 
+			ESFINISHED = 1
+		};
+												
+	8. enum XRAYRESULT 							--------- GlobalVariables.h
+		{
+			NOTHING = 0, 
+			FRACTURE = 1,  
+			BREAK = 2,  
+			UNFILLED = 3
+		};
+
+	9. enum XRRSTATUS 							-------- GlobalVariables.h
+		{ 
+			XRRFREE = 0, 
+			XRRBUSY = 1, 
+			XRRDONE = 2
+		};
+
+	10. enum DOCSTATUS 							------- GlobalVariables.h
+		{ 
+			DOCFREE = 0, 
+			DOCBUSY = 1
+		};
+
+	11. enum CASHSTATUS 							-------- GlobalVariables.h
+		{ 
+			CASHFREE = 0, 
+			CASHBUSY = 1
+		};
+
+	12. enum ESPROCESS 							-------- GlobalVariables.h
+		{ 
+			ESIDLE = 0, 
+			ESINPROCESS = 1
+		};
+
+	13. enum BROADCASTIDSTATUS 					-------- GlobalVariables.h
+		{ 
+			BROADFREE = 0,  
+			BROADBUSY = 1
+		};
+
+	14. enum PATIENTTYPE 						-------- GlobalVariables.h
+		{ 
+			ADULT = 0, 
+			CHILD = 1
+		};
+
+	15. enum PATIENTTASK 						-------- GlobalVariables.h
+		{ 
+			PATNOTHING = 0, 
+			PATGOXRAY = 1, 
+			PATBACKXRAY = 2, 
+			PATSHOT = 3, 
+			PATDIAGNOSE = 4, 
+			PATDIAGNOSEXRAY = 5, 
+			PATDONE = 6
+		};
+													16. enum CHILDTASK 					--------- GlobalVariables.h
+		{ 
+			CHILDNONE = 0, 
+			CHILDWR = 1, 
+			CHILDGOES = 2, 
+			FDUNDERGO = 3, 
+			INFORMXRAY = 4, 
+			INFORMSHOT = 5, 
+			FDDONE = 6, 
+			GETONTABLE = 7, 
+			XRAYMOVE = 8,
+			XRAYONE = 9, 
+			NURSESHOT = 10, 
+			CLDIAXRAY = 11, 
+			CHILDOVER = 12
+		};
+
+	17. struct ExamSheet 				------ GlobalVariables.h
+		{
+    		char *name;
+    		int age;
+    		int examSheetId;
+    		int erId;
+    		int temperature;
+    		int bloodPressure;
+    		int nurseId;
+    		int docId;
+    		PATIENTTYPE patientType;
+    		PATIENTTASK patientTask;   
+    		SYMPTOM illness;
+   			XRAYSTATUS xrayStatus;
+    		int xrayImages;
+  			XRAYRESULT xrayResult;
+   			SHOTSTATUS shotStatus;
+    		ESSTATUS esStatus;
+    		ESPROCESS esProcess;
+    		float totalAmount;
+		};
+									
+	18. enum LockStatus 					------- synch.h
+	{
+    	FREE = 0, 
+    	BUSY = 1
+	};
+		
++ Data Structures modified, and the file they were 
+	
+	1. class Lock {     			  -------- synch.h / synch.cc
+  	public:
+    	Lock(char* debugName);  		
+    	~Lock();			
+   	char* getName();
+    	void Acquire();     
+	void Release(); 
+    	bool isHeldByCurrentThread();		
+				
+  	private:
+    	char* name;
+    	Thread *owner;
+    	List *waitingList;
+    	LockStatus status;
+    	};
+
+	2. class Condition {				   --------- synch.h / synch.cc
+  	public:
+    	Condition(char* debugName);
+    	~Condition();			
+    	char* getName();
+    	void Wait(Lock *conditionLock); 	
+    	void Signal(Lock *conditionLock);
+    	void Broadcast(Lock *conditionLock);
+   	private:
+    	char* name;
+   	List* waitingList;
+    	Lock* waitingLock;
+	};
+
+	
++ Functions added and in which file
+
+	1. Void Parent(int pid);   --- HospitalTest.cc
+	2. Void Child(int pid);	--- HospitalTest.cc
+	3. Void WaitingRoomNurse(int pid); --- HospitalTest.cc
+	4. Void Patient(int pid);	--- HospitalTest.cc
+	5. Void Nurse(int pid);	--- HospitalTest.cc
+	6. Void Doctor(int pid);	--- HospitalTest.cc
+	7. Void XRayTechnician(int pid); --- HospitalTest.cc
+	8. GlobalVariablesInit();	--- HospitalTest.cc
+	9. HospitalGetInput();		--- HospitalTest.cc
+	10. HospitalTest();		--- HospitalTest.cc
+	11. test_1();			--- HospitalTest.cc
+	12. test_2();			--- HospitalTest.cc
+	13. test_3();			--- HospitalTest.cc
+	14. test_4();			--- HospitalTest.cc
+	15. test_5();			--- HospitalTest.cc
+	16. test_6();			--- HospitalTest.cc
+	17. test_suite();		--- HospitalTest.cc
+	18. GlobalVariablesInit()	--- HospitalTest.cc
+	19. GlobalVariablesClean()	--- HospitalTest.cc
+		
++ Functions modified and in which file
+
+	1. Lock::Lock(char *debugName);   ---synch.cc
+	2. Lock::~Lock();                              ---synch.cc
+       	3. Void Lock::Acquire();                         ---synch.cc
+       	4. Void Lock::Release();                           ---synch.cc
+       	5. Void Lock::isHeldByCurrentThread();  ---synch.cc
+       	6. Condition::Condition(char* debugName);  ---synch.cc
+       	7. Condition::~Condition();                                 ---synch.cc
+       	8. Void Condition::Wait(Lock* conditionLock);   ---synch.cc
+       	9. Void Condition::Signal(Lock* conditionLock);   ---synch.cc
+      	10. Void Condition::Broadcast(Lock* conditionLock);   ---synch.cc
+	11. void Scheduler::Clean();			--- scheduler.cc / scheduler.h
+
+V.Testing:
+
+   +How to test
+
+   The only command user should input is "nachos".Then a catalog will be displayed for user to choose.There are seven options respectively standing for test_1,test_2,test_3,test_4,test_5,test_6 and the whole system test.Considering for repeatability,user can choose again after one test finishes. In the System testing case, users are required to assign the Number of Entities in order to run in a random environment.
+
+   +Test Output
+
+Test case 1-6, we fix the number of each entity to quick get through the output or the sequencing of the entities, and
+For each test, a message will be displayed to inform the user which test is running.The specific output explanation is as below:
+1. test1:The screen will only print the output content from child patient and parent.User will find that no matter the child patients go,they are always companied by their parents. 
+2. test2:The screen will only print the output content from waiting room nurse and patient/parent.It proves that WRN only talks to one patient at a time.
+3. test3:The screen will only print the output content from cashier and patient/parent.It justifies the cashier only talks to one patient at a time.
+4. test4:The screen will only print the output content form nurse and patient/parent.User can see that patient/parent never go anywhere without being escorted by a nurse.
+5. test5:The screen will only print the output content from patient.For each patient,user can check whether he leaves the waiting room,examination room,X-ray office and doctor's office.If each patient can make it, the result will prove that all patients leave the doctor's office and no one stays in some room forever.
+6. test6.The screen will only print the output content from doctor and patient.From the result, user can see that two doctors never examine the same patient at the same time.
+7. system test:The screen will print all the output from every role.It's an integration for all the six test above and is also our final result.
+
+VI.Discussion:
+
+   +Experiment expectation.
+
+    1.First the user should input the number of these roles,but the number should within the minimum and maximum. If not, these threads will not run and will display error message.If the input doesn't satisfy the format,such as string, an error message will also be displayed.
+    2.Second,if all inputs are legible,the output will be generated according to the inputs and the format is as same as the output guideline.
+   3.The output sequence should be reasonable based on design, assumption and test requirement.
+   
+  +Experiment result.
+
+   The result satisfies the expectation.
+
+   +Explanation
+
+   1.All patients enter the waiting room first and then queue to get the registration form from waiting room nurse.
+   2.The waiting room nurse gives them form one by one and gets the finished form after patient filling it.
+   3.The waiting room nurse gives the examine sheet to nurses and nurses escort patient to examine room.
+   4.For each patient,the sequence is first diagnosed by doctor,taken X-ray or shot,escorted to cashier and finally leaving the hospital.
+
+VII.Miscellaneous:
+
+1. When you try to run the System case in which you can type the entities' number you would like to assign, you must run this testing case first and then Quit the program. After the Quitting the program and restart the program, you can get the result what we expect. We tried our best to figure out the problems underlying it, but failed. It might be something incompatible with the system, so in this inconvenience, you probably have to run the System case twice.
+2. The maximum of child patient is 1000.
+3. After user inputs the whole patient quality,the system will randomly determine how many adult patient and child patient and allocate the patient id number randomly.
+4. To clearly print the output content for each test, we define several new flats for DEBUG function.
+    nurse:                        u
+    adult patient:              l
+    waiting room nurse:   	w
+    doctor:                       o
+    cashier:                      c
+    parent:                       p
+    child:                          h
+    xray:                          x
+5. If you choose the system test from the catalog,the program may wait a moment to display the catalog again, since we use the quantities of patients multiply 1000 times to yield the "PARENT" thread, so that under its background, we control the start of termination of each thread.
+
+
+

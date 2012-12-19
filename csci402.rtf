@@ -1,0 +1,1763 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1138\cocoasubrtf320
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Light;\f2\fnil\fcharset134 STHeitiSC-Light;
+}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww12520\viewh14840\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\i\b\fs36 \cf0 \ul \ulc0 Jan.12\ulnone \
+
+\i0\b0 \
+User - Run Applications   Visual Machine Interface | OS | Hardware Interface | Hardware\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \ul Major Components of an OS\ulnone \
+	1) CPU Scheduler\
+	
+\f1\i 2) File System
+\f0\i0 \
+	3) Memory Manager\
+	4) Networking\
+	5) Security\
+\
+\ul Simple OS\ulnone  --- 1 User @ a time | 1 application @ a time\
+	Examples: DOS, Nachos\
+	Results: No security needed between user applications\
+\
+Sharing the Computer --- Multiple users / programs\
+\
+\ul MULTI-PROGRAMING\ulnone  GOAL: keep as many resources on the computer as busy as possible\
+	TO DO THIS: the OS must switch as efficiently as possible between applications => Context Switch (transparent)\
+\
+\ul Context Switch\ulnone  => allows for Concurrency\
+	WHEN: \
+		1) a user program finishes\
+		2) a new user program starts up\
+		3) a user program executes a "slow" ( IO, Network\'85) operation\
+		4) a maximum amount of time has elapsed => Time slice\
+	RESULT:\
+		OS must "remember" the user program context(state) when being evicted from the CPU\
+\
+\ul Concurrency\ulnone \
+	Applications can run as if they have the computer to themselves\
+\
+\ul Process\ulnone \
+	OS manage processes, not user programs, the process keeps track of all the "stuff" an OS must remember for executing user programs.\
+	THREE MAIN PARTS:\
+		1) Code/Data for user program\
+		2) Allocated resources\
+		3) Book-keeping information --- CPU Registers, Other OS-Specific data\
+	4 STATES:\
+		1) NEW: Process is in the creation stage - not complete, yet. OS is not ready to run the user program.\
+		2) READY: Process is ready for the CPU, waiting its turn.\
+		3) RUNNING: Process is currently executing in the CPU. (Cleaning work might be in this state)\
+		4) BLOCKED: Process can not use the CPU until some events occur\
+	Problems:\
+		1) No way to share resources between processes.\
+			------ Need a mechanism to allow for sharing\
+		2) Sharing of resources can cause problems => Race condition\
+			Race Condition Define: order of execution affects the result.\
+\
+\ul Mechanisms for Sharing Data Processes\ulnone \
+	1) Message Passing --- Requires a "System Call" so the OS can perform the delivery task.\
+		Disadvantage: the OS must execute code for every sharing event\
+	2) Global Memory --- share the same physical memory, another system call to allow different processes to share some common memory.\
+		Disadvantage: OS must manage these special memory area.\
+	Better Solution: have a way for allowing multiple "execution streams" to share data - in a secure fashion that requires no "extra" effort by the OS.\
+		=> Let's allow multiple execution streams in a single process. => each execution streams refer to THREAD.\
+\
+Threads\
+	To share data between threads ( in the same process) only requires global variables.\
+	How does the OS track threads? \
+		1) Store the book-keeping info for each thread in a process\
+	CPU Scheduler now schedules threads\
+		\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\i\b \cf0 \ul Jan. 17
+\i0\b0 \ulnone \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \ul Restaurant( single execution stream)\ulnone \
+\ul Process\ulnone \
+	Customer arrivers\
+	Employee \
+		1). takes order\
+		2). cooks food\
+		3). bags food\
+		4). take money\
+	Customer leaves\
+\ul Multithreading is like having multiple, specialized employees.\ulnone \
+	Each tread performs its task(s)\
+	Cooperation between threads occurs through sharing data\
+\ul Problems:\ulnone \
+	1) Sharing between execution streams allows for the problem of "Race Conditions".\
+		TWO Issues with "Race Conditions"\
+		 	1. How to ensure threads, in a single process, execute one at a time.\
+			2. How to ensure proper sequencing of events.
+\f2 \
+		
+\f0 TWO Ways to use Threads\
+			1. can be independent of each other, no sharing of data => No Race Condition possible\
+			2. Cooperate together by sharing data => Race Conditions can occur\
+		In real systems, each thread has both ways present.\
+\
+\ul Atomic Operation\ulnone \
+	One, or more, tasks, that execute as a "single" operation => can not be split up => No interference with shared data.\
+	Example\
+		if( i != null) \{ print 10/i;\}\
+\
+\ul Critical Section(Region)\ulnone \
+	A section of code that utilizes shared data in a process.\
+	We use atomic operations to control access to critical sections.\
+	Result:\
+		If we implement this property we solve both Race Condition problems.\
+\
+\ul Mutual Exclusion\ulnone \
+	If one thread ( in a process) is in a critical section, no other thread ( in that process) is allowed to enter that Critical Section. => They must wait.\
+	FOUR Necessary Conditions for M.E.\
+		1) Only 1 thread is in a C.S. @ a time\
+		2) No thread has to wait forever a C.S.\
+		3) No thread outside a C.S. can block ( remove from the CPU) a thread in a C.S.\
+		4) No assumptions about CPU speed. ( Can't ignore the problem)\
+	Example: Too much milk\
+		2 UCLA football roommates\
+		Problem: They like milk\
+		       Told: Buy 1 gallon of milk @ a time\
+		Solution #1: --- With Problems\
+			Leave a note to buy milk,\
+			Remove a note when have milk back\
+			Rule:\
+				If no milk & you see a note, do not buy milk\
+		Solution #2: --- With Problems\
+			Use LABELED notes.\
+			Leave your note first.\
+		Solution #3: --- It works but with problems\
+			One Waits\
+			Problems:\
+				1) what if many threads want to wait, code is different for each student\
+				2) "Busy Waiting"\
+		Solution #4:\
+			Lock milkLock;\
+			Advantages: \
+				1) It works\
+				2) All threads have the same code\
+			Solving Busy Waiting must be in our implementation of Acquire and Release.\
+\
+\ul Need Higher-Level Atomic Primitives\ulnone \
+	We must use hardware atomic primitive operations to build our software tools.\
+	1. Test & Set Lock(TSL)\
+		a. Read a memory address value & copies into a CPU register\
+		b. Sets the memory address value to a NON-ZERO value\
+		c. Checks the register\
+			1) if register value is NULL: "Thread may proceed"\
+			2) If register value is NON- NULL: "Thread may not proceed"\
+	2. Disable interrupts\
+		We "own" the CPU until\
+			1) Restore interrupts\
+			2) Voluntarily give up the CPU\
+			3) Abort\
+\ul Higher-Level Primitive #1\ulnone \
+	Lock --- Locking a door; one key; Once a door is locked, no one else can get in; Only the entity that locked the door is allowed to unlock it.\
+		TWO Operations Needed\
+			1) Acquire: " I locked an unlocked door"\
+			2) Release: " I unlocked the door I locked"\
+		BOTH Operations must be atomic\
+	Lock Implementation\
+		Rule: \
+			1) Acquire & Release must be atomic\
+			2) Use hardware atomic operation operations inside Acquire/Release\
+		Solutions: \
+			1) Use interrupts\
+				To make a Lock operation atomic, Disable interrupts, Perform the lock operation, Restore interrupts \
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\i\b \cf0 \ul Jan. 19\
+	\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\i0\b0 \cf0 Lock Operation Implementation\ulnone \
+	1) Disable interrupts\
+	2) Perform the lock operation\
+	3) Restore interrupts\
+\
+\ul Nachos Interrupt Class\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \ulnone 	Already exists, A global kernel variable called "interrupt"\
+	\
+	To disable:\
+		IntStatus old = interrupt->SetLevel(IntOff);\
+	To restore\
+		interrupt->SetLevel(old);\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \ul Solution must have:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \ulnone \
+1) No busy waiting\
+	Approach: Use sleep/wake up\
+	Sleep: A thread "state" where it can not gain access to the CPU. --- On its own.--- by the CPU Scheduler\
+	Wake Up: The event, a sleeping thread has been waiting for, has occurred. \
+	\
+	Sleep Implementation:\
+		For a thread to gain access to the CPU, both of the followings should be true:\
+		1) it must be in READY state\
+		2) it must be in READY LIST\
+		\
+	Goal#1: Remove a thread from the CPU & READY LIST\
+	\
+	Nachos: currentThread is a thread object pointer, it points to the thread running in the CPU.\
+			You can only put yourself to sleep. --- currentThread->Sleep(); => Removes from CPU & READY LIST\
+\
+	Goal#2: Find Sleeping Threads\
+			We use a separate queue( Waiting LIST), specific to each "LOCK", to store sleeping threads.\
+			Add a "wait" queue to the Nachos LOCK class. BEFORE going to sleep, add yourself to the LOCK's wait queue.\
+\
+	WakeUP Implementation:\
+		1) Wake up 1 sleeping thread --- if there is one\
+		2) Give this thread ownership of the LOCK\
+		3) Put this thread in the READY LIST in the READY STATE\
+			scheduler->ReadyToRun( * ThreadPtr);	\
+	Locks have 2 states --- FREE / BUSY\
+	\
+	void Lock::Acquire()\
+	\{\
+		Disable interrupts;\
+		if(  //I am the lock owner)\
+		\{\
+			restore the interrupts & return;\
+		\}\
+		if(  //lock is available) \
+		\{\
+			// Get the lock;\
+			// Make it BUSY;\
+			// Make myself the lock owner;\
+		\}\
+		else //Lock not available\
+		\{\
+			//Put myself to sleep; Add myself to LOCK WAITING LIST;\
+			//Go to sleep;\
+		\}\
+		Restore interrupts;\
+	\}	\
+	void Lock::Release()\
+	\{\
+		Disable Interrupts;\
+		if( // I am not the lock owner)\
+		\{\
+			//Print error Message;\
+			//restore interrupts;\
+			//return;\
+		\}\
+		if(// A thread is waiting )\
+		\{\
+			//Remove one thread out from the LOCK WAITING LIST;\
+			//Call scheduler->ReadyToRun();\
+			//Make them the lock owner;\
+		\}\
+		else //No waiting threads\
+		\{\
+			//make lock FREE;\
+			//clear LOCK ownership\
+		\}\
+		restore interrupts;\
+	\}\
+	\
+	Locks only solve Mutual Exclusion, they can not solve sequencing problem, we need another primitive --- Condition Variables.\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \ul Condition Variables\ulnone \
+	Do not have state like locks.\
+	Have 3 operations\
+		1) Wait: Put myself to sleep; waiting on some condition to occur.\
+		2) Signal: Wake up 1 waiting thread.\
+		3) Broadcast: wakeup all waiting threads.\
+\
+	void Condition::Wait(Lock *lock)\
+	\{\
+		// Disable interrupts;\
+		if(lock == NULL)\
+		\{\
+			// Print MSG;\
+			// Restore interrupts & return;\
+		\}\
+		\
+		if( waiting LOCK == NULL)\
+		\{\
+			// This is the first waiting thread;\
+			// waitingLock = lock;\
+		\}\
+		if(waitingLock != lock)\
+		\{\
+			// Print error MSG;\
+			// Restore Interrupts & return;\
+		\}\
+\
+		// Ok to Wait\
+		// lock->Release(); // exit the C.S.\
+		// Add myself to C.V. Waiting LIST;\
+		currentThread->Sleep();\
+		lock->Acquire();	//re-enter C.S.\
+		\
+		Restore Interrupts;\
+	\}\
+\
+	void Condition::Signal(Lock * lock)\
+	\{\
+		// Disable interrupts;\
+		if(// No thread waiting)\
+		\{\
+			// Restore interrupts & return;\
+		\}\
+		if( waitingLock != lock)\
+		\{\
+			// Print MSG, Restore Interrupts & return;\
+		\}\
+		// Wakeup 1 waiting thread\
+		Remove 1 thread from Condition Waiting LIST, Put them on READY LIST;\
+\
+		if( // no more waiting threads)\
+		\{\
+			waitingLock = NULL;\
+		\}\
+\
+		//Restore interrupts;\
+	\}\
+\
+	void Condition::Broadcast(Lock * lock)\
+	\{\
+		while( //there are waiting threads )\
+		\{\
+			Signal(lock);\
+		\}\
+	\}\
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\i\b \cf0 \ul Jan. 24 & Jan.26\
+
+\i0\b0 \ulnone \
+Putting Locks & Condition variables together.\
+Two tasks involved in Race Conditions\
+	1. Mutual exclusion\
+		Tool: Lock\
+	2. Sequencing\
+		Tool: Condition Variable\
+	Put all the two together: \ul Monitor\
+\ulnone 	\
+	Surround a critical section with a monitor.\
+\
+Monitors have 3 parts\
+	1. Lock for mutual exclusion.\
+	2. One, or more condition variables.\
+	3. monitor variables for making sequencing decisions --- just data.\
+\
+Form of a monitor\
+	Acquire the monitor lock.\
+	Use/Modify my monitor variables to make sequencing decisions - use condition variables to do this.\
+	Release the monitor lock.\
+\
+Output Guidelines\
+	Each entity(thread) needs an index number, e.g., Patient[1]\
+		Patient[index #] arrived at Doctor's office\
+		Patient[index #] getting in line for waiting room nurse\
+	How to get an index number to a thread?\
+		To make 20 patient threads\
+		1. Have a function\
+			void Patient(int index) \
+			\{\
+				\
+			\}\
+		2. Have a test function that initializes all the monitor variables, create all the locks & CVS, & make all the threads.\
+			// 20 patient threads\
+				for(int i = 0; i < 20; i++)\
+				\{\
+					Thread *t = new Thread("\'85");\
+					t->Fork(VoidFunctionPtr, i+1);\
+				\}\
+Testing \
+	6 separate tests - 1 for each task you are to prove.\
+	1 "system" test - run the whole simulation\
+		--- prompt the user\
+			# Patients\
+			# Nurses\
+			# Doctors\
+			# ChildPatients\
+			# Exam Rooms\
+	Piping Nachos Output to a file\
+		--- nachos > output1.txt\
+	\
+\
+Interaction: Waiting Room Nurse & Patient\
+	1. Patients gets examination sheet from the nurse\
+	2. "Sit down" to fill it out\
+	3. Come back to WRN with completed form\
+	4. Waits to be called in waiting room\
+What data do we need?\
+	1. Lock: waitingRoomLock\
+	2. ExamSheet struct: char * name; int age;\
+	3. Counter for the number of patients in line for WRN: patientWaitingCount = 0\
+	4. CV for waiting patients: patientWaitingCV\
+	5. CV for WRN with nothing to do: wrnWaitingCV\
+	6. Lock for Patient and WRN interaction: wrnLock\
+	7. monitor variable for WRN state: wrnState: FREE/BUSY\
+	8. Monitor variable for WRN task to perform: int wrnTask: GETFORM/ GIVEFORM\
+	9. Monitor variable passing exam sheet between WRN & Patient: ExamSheet *wrnExamSheet\
+\
+Waiting Room Nurse\
+\
+	while(true)\
+	\{\
+		waitingRoomLock -> Acquire();\
+		if(patientWaitingCount > 0)\
+		\{\
+			//A patient is in line\
+			//I wake them up.\
+			patientWaitingCV->signal(waitingRoomLock);\
+			patientWaitingCount--;\
+			wrnState = BUSY;\
+		\}\
+		else\
+		\{\
+			wrnState = FREE;\
+		\}\
+		wrnLock -> Acquire();\
+		waitingRoolLock->release();\
+		wrnWaitingCV->wait(wrnLock);\
+\
+		//See what task to perform\
+		if(wrnTask == GETFORM)\
+		\{\
+			//make a new exam sheet\
+			wrnExamSheet = new ExamSheet();\
+			wrnWaitingCV -> Signal();\
+\
+			// I wait for patient to tell me they have exam sheet\
+			wrnWaitingCV -> Wait();\
+			//Done with Patient\
+		\}\
+		else if( wrnTask == GIVEFORM)\
+		\{\
+		\}\
+		wrnLock->release();\
+	\} //end of while\
+\
+Patient \
+	ExamSheet *myExamSheet;	\
+	waitingRoomLock -> Acquire();\
+	if(wrnState == BUSY)\
+	\{\
+		//Nurse is busy. Get in Line	\
+		patientWaitingCount++;\
+		patientWaitingCV -> Wait(waitingRoomLock);\
+	\}\
+	else\
+	\{\
+		wrnState = BUSY;\
+	\}\
+	waitingRoomLock -> Release();\
+	\
+	wrnLock -> Acquire();\
+	//Need to tell WRN what to do\
+	wrnTask = GETFORM;\
+	wrnWaitingCV -> Signal(wrnLock);\
+	wrnWatingCV -> Wait(wrnLock);\
+	myExamSheet = wrnExamSheet;\
+	\
+	\
+\
+\
+\
+WaitingRoom Nurse - Nurse Interaction\
+\
+Rule#1 --- A Nurse only looks(tells) for one patient for one Exam Room @ a time\
+	Interesting Scenario\
+		--- Waiting Room is empty\
+		--- Patients are in some ER or @ X-RAY room (2 nurses on duty & 3 empty Exam Rooms)\
+\
+Shape of Nurse Code\
+\
+	while(true)\
+	\{\
+		Task1: Get a patient from a waiting room, escort to Exam Room\
+	\
+		Task2: Escort to X-Ray Room\
+\
+		Task3: Escort back to Exam Room\
+\
+		Task4: Escort to Cashier\
+\
+		for(int i =0; i< random(no); i++)\
+			currentThread->Yield();\
+	\}\
+\
+How does a Nurse know which Exam Room is open?	\
+	Need a monitor variable for each Exam Room state --- Use an array of size 5\
+	Need a lock - one for each room state might cause problems (certainly lower efficiency to have multiple locks)\
+	\
+How does a Patient wait in an Exam Room?\
+	Need a CV for each Exam Room and a lock for each room.\
+	Lock *examRookLock[MAX_EXAM_ROOM];\
+	Condition * examRoomCV[\'85];\
+\
+A bit more on monitor Theory\
+\
+Situation\
+	Thread P is running in a monitor & the CPU\
+	Thread Q was in the monitor but is now waiting on some condition\
+	P executes a Signal to wakeup Q\
+	Problem: P & Q can not both in the monitor @ the same time\
+\
+Mesa-Style monitor\
+	P stays in the monitor & the CPU\
+	Q must wait for P to exit the monitor\
+		Q goes to the back of the Ready Queue & must reacquire the monitor lock\
+	Advantage: Fair to other threads in CPU access.\
+	DisAdvantage(Application level): The condition that Q was waiting on may no long exist\
+\
+Hoare-Style monitor\
+	P immediately exists the monitor & CPU\
+	Q gets the CPU & monitor\
+	Disadvantage:  Special context switch code required\
+				   possible to have 2(or a few) threads control CPU access.\
+\
+
+\i\b Jan. 31
+\i0\b0 \
+\
+Midtern #1 Feb. 9th during class 11:00 -12:20 Room TBD\
+\
+Producer /Consumer Problems\
+\
+	"produce" 				 "consume"\
+Ex: set a variable 				read a variable\
+Each Producer/Consumer is a potential race condition\
+\
+Semaphores\
+1. Can handle the problems that monitors can handle.\
+2. Have 2 operations. ---- P()/V()\
+3. have state --- an integer(0 -> Postive integer)\
+4. Have Wait QUEUE\
+5. V() --- Increments semaphore by 1\
+6. P() --- Wakeup 1 Waiting thread, decrements the semaphore by 1 if the value > 0\
+	   --- If value is 0, the thread must wait\
+7. Semaphore value is private\
+\
+Mutual Exclusion --- Binary Semaphore with Value is 0 or 1\
+1. Initialize to 1\
+2. To enter a C.S. -- Decrement\
+3. To exit a C.S. -- Up\
+	Problem with Binary Semaphore as a Lock --- Service time may be delayed\
+\
+Sequencing\
+1. Can start with any initial value\
+2. Usage can up or down first\
+\
+Soda Machine(with Semaphore)\
+1. Capacity 10(finite buffer)\
+2. Soda machine is a shared resource\
+3. Students take 1 soda @ a time\
+4. Soda Guy add 1 soda @ a time\
+5. access to machine must be mutually exclusive\
+\
+ISSUE: when does a thread go to sleep?\
+	--- When does a thread go to sleep?\
+	--- Machine is full --- SodaGuy sleeps\
+	--- Machine is empty --- student sleeps\
+\
+Need 3 Semaphores\
+mutex --- "lock" --- binary semaphore\
+empty --- #emply slots --- starts @ 10\
+full --- #full slots --- starts @ 0\
+\
+Soda Guy\
+	\
+	while(true) \
+	\{\
+		empty.Down(); // Reserve a slot for myself\
+		mutex.down();\
+		Add a soda;\
+		mutex.up();\
+		full.up();\
+	\}	\
+	\
+Student \
+	\
+	full.down();\
+	mutex.down();\
+	Take one soda;\
+	mutex.up();\
+	empty.up();\
+
+\i\b \
+Feb. 2
+\i0\b0 \
+\
+CPU Scheduling\
+	Task: Which thread is to get the CPU next & when do they get it\
+	Policy: Rules \
+	Mechanism: Implementation --- How do we do it\
+5 possible Goals for Schedulers\
+	Fairness: Every "job" gets about the same amount of CPU time\
+	Efficiency: keep as many of the computer's resources as busy as possible\
+	Response Time: Favor(or not) interactive(foreground) use\
+	Turnaround Time: Favor(or not) background jobs\
+	Throughput: Complete as many jobs as possible\
+Issues: Do jobs run to completion(non-preemptive) or not(preemptive, how long is a time slice)?\
+	if time slice is too long: interactive use can suffer\
+	\'85\'85\'85\'85\'85\'85 too short: too many unnecessary context switches\
+Scheduling Policies\
+	1. First - Come First - Served\
+		Non-preemptive - jobs run to completion\
+		The job that has waited the longest gets the CPU next\
+		+ Fair ( no starvation)\
+		+ Simple\
+		- Short jobs can get stuck behind long jobs\
+	2. Round Robin\
+		Preemptive FCFS\
+		Jobs run until their time slice has expired, they are blocked on a "slow operation"\
+		or they voluntarily give up CPU\
+		+ Fair\
+		+ Short jobs do not get stuck behind long jobs\
+		-  Unnecessary Context switches when all jobs are about the same length\
+	3. Shortest job first\
+		Maximizes throughput \
+		Non - preemptive\
+		Run the job(in ReadyQueue) requiring the least CPU time to complete.\
+		- Not implementable\
+		- Not fair (starvation)\
+	4. Priority - based scheduling\
+		Priority: Some jobs are favored over other jobs\
+		Policy: "Higher" priority jobs run before lower priority jobs\
+		Issue: Preemptive or not?\
+		New Issue: Do priorities change or not? Dynamic priority / Static priority\
+		Static Priority:\
+			- starvation can occur\
+			+ easier on OS\
+		Dynamic priority: Priorities can go up or go down 1) wait time 2) CPU time\
+			+ no starvation\
+			- extra overhead\
+		Final Issue: How many priorities are needed?\
+			Somewhere around 4 priorities are typical\
+			Most effective Ready Queue organization is to have a separate Ready Queue for each priority\
+			+ Can have a separate policy for each priority\
+			+ can also have different time slices for different priorities\
+
+\i\b \
+Feb. 7
+\i0\b0 		\
+\
+Midterm #1\
+Memory Management\
+Nachos is uni-programmed for user programs\
+	. It can only run 1 user program @ a time and only single-thread\
+Problem for you to solve\
+When Nachos loads a user program into memory -  it loads the program, so that the "virtual addresses" equal the physical addresses, programs are loaded into physical memory for execution.\
+What is the structure of a user program?\
+. Have Code/Data -- the compiler converts our source code into a set of machine instructions which access/change data\
+\
+Issue: The compiler does not know where a user program will be loaded into physical memory\
+Solution: the compiler produces virtual memory\
+All virtual addresses for code & statically declared data are written to the executable by the compiler.\
+Virtual Address Space\
+	. Code and data are produced by compiler\
+	. Heap & stack are created by OS @ run time\
+In multi-programmed OSes, new requests to run a user program has the OS load the user program into unused physical memory.\
+\
+How to load the executable contents into memory?\
+Memory is "divided" into equal size pieces - pages\
+The OS allocates memory one page @ a time to user programs\
+Your goal: the OS copy code & initialized data from the executable to physical memory 1 page @ a time ( to an unused page)\
+*The OS must track which pages are used/unused & which process "owns" which pages.\
+\
+To do the process-specific page mapping ( virtual pages to physical pages)\
+Page Table\
+	. is an array\
+	. one entry for each virtual page in the address space\
+	. indexed by virtual page number\
+Page Table stores the physical memory page where that virtual page was loaded.\
+\
+Nachos has a page table\
+	. an array of translation entry\
+One task for you in project 2 is to populate the Nachos page table 1 entry(1 page) @ a time.\
+Address Translation: Converting a virtual address to its corresponding physical address=>Done through the use of page table\
+\
+Nachos already does address translation\
+	. Your job is correctly populate a process' page table\
+Solution: When a virtual page needs to be loaded into memory (@ startup), you will find an unused page of physical memory, marking it as used, and copy from the executable file into that physical page.\
+The Nachos page table is part of the AddrSpace class\
+	. In userprog directory\
+	. addrspace.h/.cc\
+\
+Address space loading must be completed before the user program can begin execution\
+	. in AddrSpace constructor\
+\
+Finding an unused page of Memory\
+Use Bitmap class - already in Nachos\
+Has 2 methods\
+	. Find()\
+	. Clear(int)\
+You create one Bitmap object for all of Nachos => system.h/.cc\
+\
+Your physical memory is to have the same number of pages as entries in your bitmap.\
+Your main memory bitmap object needs a lock.\
+\
+Watch out in AddrSpace Constructor\
+Nachos does not allocate memory a page @ a time\
+	. It copies an entire segment\
+You must copy only 1 page of a user program @ a time\
+executable->ReadAt()\
+Issue: Nachos only allows for one thread in a process 1 stack\
+To allow multithreading each thread must have its own stack\
+	. Stacks are not shared\
+\
+\
+\
+
+\i\b Feb. 14\
+
+\i0\b0 \
+System Calls  --- are the mechanism OSes use to allow user programs to safely use OS code. \
+Nachos has a system call mechanism.\
+The implementation of a syscall goes in exception.cc.\
+	1. in userprog directory\
+	2. 6 already implemented\
+	3. Read the student document\
+You implement\
+Yield, CreateLock, CreateCV, Acquire, Release, Wait, Signal, Broadcast, DeleteLock, DeleteCV, Fork, Exec, Exit\
+\
+From project 1, part1, you wrote OS code for the Lock & Condition classes.\
+Lock/Condition classes are OS resources that must be protected from application code.\
+Also, you had lots of thread objects in project 1- they are also OS resources that must be protected.\
+To implement a system call, you are building a bridge between a user program and the OS kernel.\
+Syscalls have a public interface.\
+	1. this is what user programs see, it is like a function library\
+	2. this interface looks like a function to a user program - but you do not "write" the function\
+	3. the actually code is assembler \
+	4. It exists in start.s, for sys calls already implemented\
+	5. syscall.h is the public interface declaration\
+When an interrupt is generated?\
+1. For a system call, the OS doesn't know the requested task.\
+2. The first task of the interrupt handler is to determine what the request is - from the user program. --- Nachos already does this --- RaiseException => figures out a sys call\
+happened => exception handler (in exception.cc), you implement your sys calls here.\
+\
+Pattern for implementing system calls\
+1. Validate all data coming from the user program, [ you MUST have tests to prove your validation]\
+2. If all data is valid, carry out the task\
+3. (optional) return a value to the user program\
+\
+How to get data from user programs?\
+1. CPU registers 4-7\
+	1st argument - Reg 4\
+	2nd argument - Reg 5 \'85.3rd, 4th\'85\
+2. int v = machine->ReadRegister(int);\
+	When passing character arrays through a sys call, they are passed as virtual address. --- \
+		1. they MUST be translated. \
+		2. A function already does this (copy in).\
+		3. Look @ Create Syscall. \
+Example: CreateLock sys call\
+	1. Prototype declaration in (syscall.h)\
+		int CreateLock(char *name, int #of chars in the name)\
+Example user program\
+	int a = CreateLock("abc", sizeof());\
+	1. a should never be a pointer into OS data\
+	2. it should be index number into a table managed by OS\
+	3. It should be a fixed size array\
+\
+If one table \
+Process 1: int a = CreateLock("a", 1);\
+			Acquire(a-1);\
+Part of Validation is to check process ownership. Threads can only access locks/cvs made by their process\
+\
+What should our table be a table of?\
+1. Lock*/CV*\
+2. Some way to identify the owning process\
+	AddrSpace *\
+	currentThread -> space is addrspace of the thread running in the CPU\
+\
+struct KernelLock\
+\{\
+	Lock *lock;\
+	AddrSpace *addrSpace;\
+	bool isDeleted;\
+	bool isToBeDeleted;\
+\}osLocks[MAX_LOCKS];\
+int nextLockLocation=0;\
+Lock *kernelLockTableLock;\
+		\
+Where to put the OS lock/CV table and related data? system.h/.cc, use extern\
+1. actual declaration in .cc\
+\
+"Hidden" sys call requirement\
+1. Your Nachos user program simulation MUST follow the guideline of project 1 output guidelines.\
+2.  Nachos only has a write sys call for output. It only outputs a signal character array.\
+3. Suggest a Printf sys call, like Printf("\'85%d\'85%d", sizeof(), int, int);	
+\i\b \
+
+\i0\b0 Fork, Exec, Exit\
+\
+Fork - adds a new thread to an existing process, each thread MUST have its own stack!\
+Exec - Creates a new, single - threaded process\
+Exit - Called by a user program thread when done executing\
+\
+when testing Fork you need @ least\
+	currentThread->Finish();\
+	Giving each thread its own stack\
+	By default: An AddrSpace only allocates space for one stack\
+\
+2 "Simple" choices\
+1. Decide how many threads a process can have and allocate that many stacks in the AddrSpace constructor.\
+2. A Nachos stack is 8 pages.\
+3. On a Fork, find an available section of 8 contiguous pages in the page table, make that the new thread's stack.\
+\
+1. Make a new page table on each Fork call, that is 8 pages bigger than the current page table.\
+2. You copy all data elements from the old page table to the new page table.\
+3. Set the last 8 pages as the stack for the new thread.\
+
+\i\b \
+Feb. 16
+\i0\b0 \
+\
+Physical Memory management\
+\
+Most basic - uni-programming\
+only 1 process, with 1 thread, is loaded into memory @ a time\
+No sharing between user programs \
+No security needed between user programs\
+\
+Next Simplest way - Fixed Partitions\
+Memory is divided into a set of partitions of various sizes\
+Load a program into a partition at least the size of the user program address space \
+	- no sharing of data between partitions\
+	+ multiprogramming is possible\
+	+ the partitions are the security\
+	- can only run a user program the size of the largest partition\
+	- Internal memory fragmentation \
+\
+Method #3 - Dynamic Partitions ( Base & Bounds)\
+A partition is created at process initialization\
++ A process can be loaded anywhere in unused memory\
++ Can only run user program the size of physical memory available to user programs\
+-  Need security between user programs\
+	1. need 2 new registers (Base register<starting, physical address>, Bounds register<partition size>)\
+\
+Issue #1: Up to now, no way for user programs to share data. \
+		With dynamic partitions, partitions could overlap\'85 but will it work? Can not overlap partition.\
+Method #4 - Segmentation\
+Allocate memory segment by segment in the address space.\
+	1. A segment will be smaller than the entire address space - perhaps easier to find a block of available memory.\
+	2. Each segment is contiguous in memory, but all segments need not be loaded into memory contiguously.\
+	3. One set of Base & Bounds registers will not be enough, having sufficient B&B pairs for all possible segments is a bad idea, we need a table of these B&B values.\
+\
+New + Memory sharing can now occur between processes without OS involvement, sharing entire segment.\
+	 + Virtual memory is now possible, allow user program to ignore physical memory limits.\
+	 -  External fragmentation exists\
+	 -  Memory allocation problems\
+\
+Method #5: Paging\
+Allocate memory in fixed size blocks - all the same size => Page.\
+"Logically" divide the address spaces into virtual pages - the same size as physical memory pages. \
++ Any virtual page can be loaded into any physical memory page.\
+-  Internal memory fragmentation.\
+	O.S. Tracks the location of all virtual pages loaded into memory for each process - Page Table\
+\
+Validation Process\
+1. Does virtual page# exist in the page table?\
+2. Is the page loaded into memory? Have a valid bit, if loaded, valid bit to true, if not loaded, valid bit is false and the OS must load it.\
+3. Compute the physical address. \
+	Paging: physical page starting Address = P.A. + Virtual Address Offset in the page.\
+\
+Paging has a new problem: \
+	Page Table is an array loaded contiguously into memory, indexed by virtual page#, managed by kernel, no address translations\
+	Page Tables can be very large\
+	How big is a physical memory page?\
+	Quite a bit of memory can be wasted through unused page table entries in the heap/stack area.\
+
+\i\b \
+Feb. 21
+\i0\b0 \
+	\
+Process Table\
+Fork/Exec sys calls will add to your process table\
+Exit will use the data in the process table.\
+\
+Issue:\
+What data is needed by the OS to clean up a thread/process on an exit system call?\
+	. allocated memory\
+		. thread stack\
+		. code & data\
+	. locks & cvs\
+\
+3 cases in Exit system call\
+1. Last executing thread in the last process (Ready Queue will be empty)\
+	interrupt->Halt();\
+2. thread in a process. Not the last executing thread in the process(may or may not be the last process)\
+	. Release the 8 pages of memory for stack for the exiting thread\
+3. The last executing thread in a process, but not the last process\
+	. Clear out all valid entries in this process' page table\
+	. Clear out all Locks & CVs for this process (Locks/CVs Marked for deletion but not deleted)\
+	. Another thread(s) do an Acquire, do we allow them to use the lock?\
+		Yes, let them use it.\
+
+\i\b \
+
+\i0\b0 Stack - For a thread\
+Nachos kernel thread stack in the Thread class - not for you\
+Nachos user program stack is for you.\
+	. Setting StackReg to a Virtual address in the process's address space\
+	. 8 pages in size\
+	. 8 consecutive entries in process' page table\
+	. stacks are to start from the last page of memory - of the 8 pages
+\i\b \
+\
+
+\i0\b0 A method in AddrSpace\
+	. InitRegisters\
+	. Sets all 40 nachos registers to 0, except NextPCReg & StackReg
+\i\b \
+	
+\i0\b0 machine->WriteRegister(StackReg, \'85)\
+\
+How do user program threads get their index number?\
+Problem: No way to pass the value of a kernel variable to a user program other than through a return value\
+Solution: have a global counter variable in the user program & an associated lock
+\i\b \
+
+\i0\b0 \
+bzero function\
+In the addrspace constructor bzero zeroes out all of Nachos user program memory, comment out the bzero statement.\
+\
+Exit System call\
+You must have at least currentThread->Finish();\
+You must also keep track of threads that are not in the Ready Queue - waiting on a lock/cv\
+\
+Fork System call\
+must create a kernel thread\
+Thread *t = new Thread("");\
+To have the thread execute code\
+t->Fork(kernelThread, value from Reg 4)\
+void kernelThread()\
+\{\
+	//Set all user registers to initial values - to run the user program function\
+	PCReg, NextPCReg, StackReg, Switch to running in user mode\
+	machine->Run();\
+\}\
+What to do when things are not working correctly\
+Test with -d a\
+It prints out 2 types of output\
+1. outputs a statement for each system call from exception handler\
+2. outputs each virtual address that is being translated, the physical address it is translated & the value @ that address\
+
+\i\b \
+Feb. 23
+\i0\b0 \
+\
+Exam I Review\
+\
+
+\i\b Feb. 28
+\i0\b0  \
+\
+Project 3 - 3 parts\
+ \
+Part1 & 2 - Demand Paged Virtual Memory\
+Part3 - Nachos Networking	\
+		- Client / Server\
+\
+An approach to parts 1 & 2\
+1. You compile and run from vm directory\
+	. Until part3 is ready\
+	. Then all compiles runs will be in network dir\
+	. VM directory makefile is setup for nachos to use the tab for address translation, not the page table\
+	Must DO - Comment out machine->pageTable = pageTable\
+	On a TLB miss, Nachos generates a PageFaultException, you must handle this exception\
+	In ExceptionHandler\
+	if(which == SyscallException) \{ project 2\}\
+	else if(which == PageFaultException) \{\}\
+	else \{\}\
+\
+Step 1 - Populate TLB from the page table\
+Project 2 work, still lots of memory, still preload into memory, Nachos will only use the TLB, will not use the page table any more. You will get TLB misses - PageFaultException\
+Two questions to answer to do this\
+1. which VP.N caused the page fault\
+	. Nachos puts the faulting virtual address into Bad VAddrReg(39)\
+	. VP.N = bad V.A. / PageSize; this is the index into the process's pageTable\
+	. Copy the data from that pageTable entry into the TLB\
+2. Which TLB entry should be used\
+	. Use FIFO\
+	. Declare a global int - set to 0\
+		currentTLB(TLB index to use)\
+		currentTLB = (currentTLB+1)%TLBSize;\
+	. Copy all fields from the pageTable to the TLB.\
+On a context switch\
+	You MUST invalidate the TLB\
+		. set all the valid bits to false\
+	Issue 1: Context switches occur with interrupts off\
+	Issue 2: TLB is shared by all threads using the CPU\
+	Solution:\
+			Turn interrupt off while accessing the TLB\
+	Result: All project2 user programs should run\
+\
+Step 2 - Implement IPT(inverted Page Table)\
+	Can be an array\
+	. has NumPhysPages entries\
+	Still keep project2 assumptions\
+	Add IPT population code to : \
+		. AddrSpace constructor\
+		. Fork Syscall(possibly)\
+		. Exit Syscall - doing clear on bitmap\
+			. Set valid bit for that physical page in IPT to false\
+\
+	Issue: IPT is indexed by physical page#\
+	If you use an array, for you IPT, you do sequential search for the needed V.P.N & process\
+	You must on 3 values to find the correct IPT entry\
+		. valid bit - TRUE\
+		. VPN matches the needed virtual page\
+		. "process id" matches of thread in CPU\
+	\
+	What data type for IPT\
+	TranslationEntry has everything we need, except a process ID\
+	Two Choices\
+	1. Create a subclass of TranslationEntry, put in threads/vm/userprog ( change makefile.common in code did; then gmake from vm)\
+	2. Create a new class containing the translation entry data.\
+	\
+	Result: All your project 2 test cases should run.\
+\
+Step 3 - Do not preload anything into memory\
+	Still lists of memory.\
+	Now you can have an IPT miss.\
+	Solution: move the preloading code & IPT population code from step 2 => goes into page fault exception code.\
+	AddrSpace constructor\
+	for(i=0 to numPages) \{ int p=bitMap->Find(); pageTable[i].valid = false; //executable->ReadAt();\}\
+	Similar chages in Fork sys call if making a new page table.\
+	On a page fault exception(from step 2)\
+	int physicalPage = -1;\
+	for(i=0 to numphyspages)\
+	 \{ if(valid bit is true && vpn match && process id match) \{physicalPage = i;break;\}\} \
+	if(physicalPage == -1) \{\
+		physicalPage = handle IPT miss(VPN);	\
+	\}\
+	// Populate TLB from IPT entry\
+\
+	Handling an IPT miss\
+	. Allocate a page of memory \
+	. Read the page into memory from executable, if needed\
+	. Update the page table - physicalPage#, valid bit\
+	. Update IPT\
+	Reading a page into memory(from executable) on a PageFaultException\
+	Issue 1: executable is a local variable to startProcess(& your Exec sys call)\
+	You must store a variable, pointing to the executable, in AddrSpace class\
+		* Comment out the deleted executable line\
+	Issue 2: How to know if a virtual page is in the executable, or not?\
+		If in executable, what's the byte offset of the page's starting address in the executable\
+		The data for this is only in AddrSpace constructor\
+		. We must save this data so it is available during a P.F.E\
+		Suggestion: "Enhance" the page table, like the IPT\
+	What do we add to the page table?\
+		Disk location: executable, not on disk, swap file\
+		byte offset in the file\
+	Executable or not: \
+		DivRoundUp(nofftt.code.size+noffft.initData.size, pageSize);\
+	Byte offset\
+		nofftt.code.inFileAddr + (i*PageSize)\
+	Result: All project 2 should run\
+
+\i\b \
+Mar. 1\
+\
+
+\i0\b0 Project 3 - Step4 - Demand Paged V.M\
+\
+Reduce NumPhysPage to 32\
+	. Memory will fill up\
+On a PageFaultException, on an IPT miss, your bitmap->Find() will return -1(no available pages of memory)\
+You must select one page of memory for eviction.\
+	. Random	-PRAND\
+	. FIFO		-PFIFO, use a queue\
+The page, selected for eviction might have been modified(dirty).\
+It must be saved => swap file, a cache of evicted pages\
+There is only 1 swap file for an OS(Nachos)\
+It must be open before, the first user program executes\
+	. Suggest: open the swap file in Initialize of core\
+On an IPT miss\
+step3 \
+	int p=bitmap->find();\
+	if(p==-1)\
+	\{ //memory is full\
+		p=handleMemoryFull();\
+	\}\
+	Result:Done with all parts1 & 2\
+		"All" user programs run except the big simulation\
+	Simpler way to prove Step 4 works\
+	matmult - Exits with 7220 \
+	sort - Exits with 1023\
+	with 32 pages of memory:\
+	matmult can take up to 1 minute\
+	sort can take up to 10 minutes\
+\
+How to handle the swap file?\
+Cache of dirty, evicted, memory pages.\
+Use a bitmap for swap file to get a location to write the evicted page to \
+How to handle dirty bits?\
+Nachos only uses the TLB\
+	. only sets the TLB entry dirty bits\
+You must propagate TLB dirty bits to your IPT\
+	. When you replace a TLB entry\
+	. When you invalidate TLB entries on a context switch\
+\
+Part3 - Networking\
+	Build  a lock/cv/mv Server instance of Nachos, only kernel code\
+	Run up to 5 Nachos clients\
+		. run user programs\
+		. only 1 single-threaded user program per client\
+Server Code\
+\
+void Server() \
+\{\
+	while(true)\
+	\{\
+		// Receive a MSG\
+		// Parse the MSG\
+		// Process the MSG\
+		// Do the request\
+		// Send a reply\
+	\}\
+\}\
+\
+Nachos Client Code\
+. Use Lock, CV, MV system calls, new for project 3\
+CreateMV, DestroyMV, GetMVValue, SetMVValue\
+\
+Suggestion #1: MVs are only ints\
+Suggestion #2: Every MV is an int array\
+ex: a = CreateMV("name", 4, 5); 5 is the size\
+\
+In network directory\
+	.nettest.cc\
+messages are sent/received through the PostOffice\
+\
+On Nachos Client Kernel side, you are implementing RPCs\
+This is to be transparent to user programs.\
+You will modify the sys call code in exception.cc to send/receive msg to/from the server.\
+Server \
+Lock/CV/MV tables will be maintained by the server.\
+\
+Client Kernel Syscall Code\
+For each lock/CV/MV system call\
+1. Get any passed arguments\
+2. Do some validations\
+	. character arrays-names\
+	. can not validate table index values - server must do this\
+3. Create a Request msg & send to the Server\
+4. Wait for the Server's Reply Msg\
+5. Parse the Reply msg\
+6. Return a value to user program(if necessary)\
+\
+
+\i\b Mar. 6
+\i0\b0 \
+	\
+Virtual Memory worst case scenario\
+\
+A virtual address, needed by CPU-virtual page data for this address is not in the TLB, we go to our translation tables to find the location of the V.P.N.\
+It turns out to be in memory.\
+But one of the level's of translation tables has been moved to disk.\
+Result: it takes milliseconds to do something that should have taken nanoseconds.\
+RULE: we never want to have to load a translation table from the DISK, when the needed virtual page is in memory.\
+Goal: Kernel needs some data structure that maps physical memory pages-independent of user programs(Maps physical pages to virtual pages), inverted page table(IPT).\
+	. Only 1 for O.S. \
+	. Always in memory\
+	. 1 entry for each physical memory page.\
+	. Managed by Kernel\
+\
+A lookup requires comparing the V.P.N & process ID.\
+IPT contains @ least\
+1. Physical page #\
+2. virtual page #\
+3. process ID\
+4. valid bit\
+5. dirty bit\
+\
+MMU\
+0. Receive & Validate the V.A\
+1. Check the TLB\
+	. If found, compute the P.A\
+	. If not found in the TLB, look in IPT\
+		. If in IPT, compute the P.A & update the TLB and done\
+		. If not in IPT, go to the translation tables (needed V.P is not in memory)\
+			a. Check the translation tables for the location of the V.P.\
+			b. Load the needed page into an available page of memory.[assume plenty of memory]\
+			c. Update IPT&TLB\
+			d. Update the translation tables\
+			e. Restart the user program at the PCReg has not changed.\
+\
+Demand Paged Virtual Memory\
+Don't preload any virtual pages into memory until a page fault occurs for a virtual page.\
+\
+What if physical memory is full on a page fault?\
+	. I must evict a page from the memory --- Which one?\
+	. What if the selected page is dirty? \
+		. We must save it to disk --- Swap file\
+\
+Page Replacement Policies\
+"Global" Decisions\
+1. If a page is dirty/not-dirty?\
+2. Do we limit processes to a maximum of physical memory pages-regardless of memory being full. --- local vs global page replacement.\
+	Local: select a page from the same process\
+	Global: select any process' page for replacement\
+Specific policies\
+1. Random\
+	+ Simple\
+	- Not based on usage\
+2. FIFO\
+	Select the page residing in memory the longest.\
+3. Optimal(MIN or OPT)\
+	Select the physical page that won't be needed for the longest time.\
+	- Not implementable\
+	+ Used for comparison with implementable policies.\
+4. Aging algorithm\
+	Replace the page that hasn't been accessed for the longest time.\
+	Depends on the number of hardware bits available for each memory page.\
+	Clock: 1 bit\
+	Enhanced Second Chance: 2 bits\
+	Several algorithms: 4 or 8 bit\
+	LRU: least recently used, 16 or 32 bits\
+	\
+Last Issue - Swap File\
+Only 1 for O.S. \
+A cache of dirty, evicted, memory pages\
+We use the translation tables to store the location in the swap file for dirty, evicted pages.\
+\
+Remote Procedure Calls\
+Based on the concept of a function call\
+	. "Jump" to another section of code\
+	. execute it\
+	. return to the calling address(+1) & continue --- possibly returning a value\
+The difference with RPCs-the jump is to code in a different process.\
+How to implement RPCs\
+1. Require user programs to explicitly issue	Send/Receive sys calls.\
+	+ Easy on O.S.\
+	- Requires the client application to "know" the server location & protocol\
+2. Hide the fact that work is being done remotely - from user programs.\
+	. No networking code in the user program.\
+	. Send/Receive work is done is "middle layer", or by the OS kernel\
+\
+How to do this?\
+Use "stubs" programs to do the networking\
+	. client stub - issues request; receives replies;\
+	. server stub - receives requests; send replies to client stubs;\
+\
+Project 3 part3 -- RPCs\
+\
+You will have:\
+	Client App: Nachos User program\
+	Client Stub: Nachos client kernel system calls code\
+	Server App,	Server Stub both are server kernel function\
+	Your NACHOS server does NOT run user programs\
+Client Nachos(Project 2)\
+ExceptionHandler\
+	. Determine the system call type\
+	. Get the parameters\
+	. validate the parameters\
+	. Do the work\
+	. Return a value ( or not) to the user program\
+Project 3 Part 3 -- Client Nachos\
+. Determine the sys calls\
+. Get the parameters\
+. validate the parameters\
+. Create & Send a Msg to the Nachos server\
+. Wait for the reply Msg\
+. Parse the reply Msg & return any value to the user app.\
+\
+Project 3 Part 3 -- Server Nachos\
+\
+While(true)\
+\{\
+	// Wait for a request Msg\
+	// Determine the request type\
+		. Put the request type first in a Msg\
+	// Parse the rest of the Msg\
+	// Validate the parameters\
+	// Do the work\
+	// Make a reply Msg and Send(maybe)\
+\}\
+\
+Scenario - Acquire(On server)\
+Server has a lock (in its table) that is already busy.\
+Server gets an Acquire for the same lock.\
+	You can not use real locks on the server\
+
+\i\b \
+Mar. 8
+\i0\b0 \
+\
+You can not use real locks/CVS in your Nachos Server\
+they will put the server to sleep, we do not want the server to sleep. We want the client thread to sleep.\
+\
+Solution\
+We need a mechanism, on the server, that works like Project1 Lock & Condition classes, but does not put the server to sleep. \
+ServerLock \
+state-available/busy\
+owner-machine id & mailbox#\
+waitQ - reply msg\
+ServerCondition\
+waitQ\
+lock used-index of ServerLock in table\
+\
+Only send a reply(Acqurie/Wait) when a thread can proceed \
+- gained ownership of a lock\
+- through a signal/broadcast\
+On a wait request, the server sends no reply, put reply msg in the waitQ\
+On Acquire request, only send reply when lock is available\
+\
+Scenario: Have an IPT miss & memory is full, we pick a page to evict.\
+Turns out the selected page to evict belongs to the current process AND this page is present in the TLB\
+\
+Solution: On an IPT miss, with the evicted page belonging to the current process.\
+1. Check for a valid TLB entry for the evicted page VPN. If found, propagate the dirty bit to the IPT and invalidate the entry\
+2. Then do normal eviction\
+\
+Testing/Debugging step 4\
+Set NumPhysPages big\
+	. No swapping\
+	. run with -rs\
+If ok, then the problem has to be in your swapping code.\
+If the problem is in the swap code:\
+Potential problems\
+. If it only happens with Exec, probably updating the wrong page table on a swap\
+. Page table updated wrong\
+	.byte offset versus value from swap file bitmap\
+. Wrote to wrong location in the swap location\
+. Read in from the wrong location in the swap file\
+. Wrote to wrong location in memory\
+. Updated IPT wrong\
+	. Use VPN instead of PPN for IPT index\
+\
+To get enough data to find a bug\
+Every load to IPT:\
+	output: vpn, pin, byte offset from FILE, which file\
+Every eviction:(dirty or not)\
+	output: vpn, ppn, (byte offset in swap)\
+\
+Approach - use matmult\
+."Play" with NumPhysPages to make it as big as possible but still produce the problem(minimizes swaps)\
+Trace the complete load/eviction history for each swapped page.\
+\
+Another helpful technique\
+Scenario: Nachos is terminating with an unhanded exception\
+Run with "-d a" => lots of output\
+Look at the next to last virtual address translated\
+. Look at VPN & PPN\
+. Output shows the virtual address translated & the physical address it is at\
+\
+Part 3 Server handling of Lock/CV Names\
+userProgramA			userProgramB\
+a=CreateLock("a",1);		x=CreateLock("a",1);\
+\
+The server on a CreateX, searches for the provided name. \
+If it exists, return the index#. \
+If it does not exist, make it.\
+On an Exit, for the last executing thread of a process, clear out the swap file for that process.\
+Also, clear out the IPT\
+\
+How to integrate parts 1 & 2 with part 3?\
+By default, the network directory does not use the TLB.\
+When integrating, change the network directory makefile to use the TLB\
+\
+After step 4, Nachos will be about 10 times slower,\
+If you think it is really stuck - both matmult/sort have embedded for loops\
+Put a write system call just inside the outer loop\
+	
+\i\b \
+Mar. 20
+\i0\b0 \
+\
+Problem: Lock for controlling IPT access - on a PageFaultException\
+1. Search IPT (use flag must be false)- if found done\
+2. If not found in IPT, search your page table - pageTable lock\
+3. Select/Find a page of memory - bitmap lock\
+	. if full, evict a page\
+		. if dirty write to swap file\
+		. update the proper page table\
+4. If needed, read in page from disk\
+	. update the page table\
+5. update IPT\
+6. update TLB\
+\
+TranslationEntry has an unused field\
+	use field\
+\
+When you must evict \
+	. do RAND/FIFO to get ppn \
+		iptLock->Acquire();\
+		ipt[ppn].use = TRUE;\
+		iptLock->Release();\
+\
+Where do stubs come from?\
+Key idea: \
+1. Client stub & server stub must "understand" each other\
+2. networking is simple\
+Solution:\
+Have a program generate the source code for stubs =>stub generator\
+Example: Web services - Axis wsd/2java\
+\
+Description Language Data\
+Request type\
+Request Version(optional)\
+Format/Type/Order of each data item in a msg\
+\
+One Last Issue\
+How does the client stub know the server stub network location?\
+1. could tell stub generator which would hard code the location into client stub\
+2. Dynamic Binding\
+	Client Stub obtains server stub location @ request time\
+	Need another program-Binder\
+		1. Track Server stub locations\
+		2. Handle client requests\
+Server Stubs "register" with Binders\
+Other capabilities\
+Deregistration msg\
+binders can poll server stubs\
+Load balancing\
+Authorization\
+\
++transparent to client/server app\
++flexibility\
+- complexity\
+\
+DeadLock\
+Occurs because of competition for resources\
+. hardware\
+. files\
+. synchronization primitives - "locks"\
+\
+Definition: two, or more jobs each waiting on an event that can only be produced by one of the waiting jobs.\
+\
+Thread A\
+lockA->Acquire();\
+lockB->Acquire();\
+Thread B\
+lockB->Acquire();\
+lockA->Acquire();\
+\
+Using Resource Sequence\
+1. User program requests resource access from the OS\
+2. Once access is granted, the user program uses the resource\
+3. When the user program is done with the resource ( or upon termination), the resource is given back to the OS.\
+\
+What if a requested resource is not available?\
+1. Fail the request\
+	Application has responsibility for handling failed requests\
+	+ No deadlock possible\
+2. Queue the request\
+	OS must manage queued requests\
+	- Deadlock can occur\
+\
+FOUR conditions for deadlock\
+1. Mutual Exclusion\
+	Some resources can not be shared\
+2. Hold & Wait\
+	Jobs can own resources & request another resource, without giving up what they already own\
+3. No preemption\
+	Once a resource is given to a job, it can not be "safely" given to another job.\
+4. Circular Wait - uses RAG\
+\
+Deadlock solution Strategies (3+)\
+1. Do nothing\
+2. Detection & Recovery\
+. Search RAG for a cycle\
+. kill a job\
+3. Dynamic Avoidance\
+	We try to avoid deadlock from happening by careful allocation of resources\
+4. Prevention\
+	Eliminate 1 of 4 Conditions for Deadlock\
+
+\i\b \
+Mar. 22\
+\
+
+\i0\b0 Exam Topics\
+1. Projects 2 & 3\
+2. Deadlock\
+3. Memory Management\
+4. Virtual Memory\
+5. Remote Procedure Calls\
+6. Protection/Security\
+\
+Protection Systems\
+The O.S. has the responsibility for the protection of resources on a computer\
+\
+General Characteristics\
+An O.S has resources(objects) - things to be protected\
+These resources are managed by the O.S for user programs\
+Each resource has a unique identifier\
+Each resource has a set of valid operations that can be performed on it\
+\
+Protection Systems have 3 components\
+. resource/object to be protected\
+. a set of allowed operations\
+. processes ( user programs)\
+\
+Domain Matrix Implementation\
+Uses a 2D array\
+Domain: A set of pairs of data\
+. objects\
+. rights(authorized operations)\
+Rules: \
+1. A user program can only belong to one domain @ a time\
+2. A user program can switch domains.\
+\
+Each object/rights pairs specifies:\
+1. the object being protected\
+2. the subset of allowable operations the domain can perform\
+\
+In our matrix:\
+. A row represents a domain\
+. a column represents an object\
+. a cell contains the allowed operations for a signal domain for a signal object\
+Example: aludra\
+#user: 10, 000\
+#files/user: 100\
+totoal #files: 1,000,000\
+\
+1,000,000 colums in our matrix\
+10,000 rows in our matrix\
+10,000,000,000 cells\
+How many cells have data?\
+100 files * 10,000 users = 1,000,000\
+99.99% empty, this is very sparse\
+\
+TWO "standard" implementations that store only "non-empty" cells => a domain that has access to a particular resource\
+New protection rule: No information means no access\
+1. Access control list(ACL) - by resource\
+2. protection domain - by domain\
+ACL: For each object we have a set of pairs(domain, rights)\
+Protection Domain: For each domain, we have a set of pairs(object, rights)\
+Protection data is privileged (kernel access), no direct user access\
+\
+Issue: At any instant, the protection data establishes what a domain can access\
+It does not control what domains are authorized to do \
+Protection data may not match the protection policy\
+\
+Scenario:\
+We build brand new system - no users, yet\
+It has data to be protected\
+. we implement the protection policies exactly\
+. we have trustworthy people managing the protection data\
+Question: Can we guarantee that the system will always be in a state where the protection policy match? - Yes\
+Can we guarantee no protected data is "stolen"? - No\
+\
+Scenario:\
+We have a tax computation system\
+. No I/O except to/from the custom\
+One of the programmers is collaborating with some\
+Our approach: Do something that affects the state of computer and this state change can be "measured" by our collaborator.\
+
+\i\b \
+Apr. 3\
+
+\i0\b0 \
+Project 4 - Distributed Doctor's Office\
+2 parts\
+1. Client Side work\
+	. only 1 server\
+	. Implement Doctor's office as a distributed system.\
+Each entity is to be created through the Exec system call.\
+Split up your project 2 simulation\
+Simulation functions into separate user programs.\
+You can still have 5 client instances of Nachos\
+	. By default, nachos supports 10 distinct mailbox for each nachos instance(0-9)\
+	. You can chance this default in Initialize function in system.cc\
+WARNING:\
+	You can not hardcode mailbox numbers any more\
+	I suggest changing the Exec system call to assign a unique mailbox number to the THREAD\
+2. Multiple Servers\
+	Focus is on making the servers distributed\
+Implement an extension to the fully distributed mutual exclusion algorithm - between servers\
+\
+Nachos clients are to be unaffected by part2\
+	. Only change to client kernel is to randomly pick a server(machine id) to send a message to \
+How to pick a random server easily\
+	. server machine ids are sequential & start @ 0\
+	. add a new command line parameter \
+		\'85 nachos \'85 -nserver 5\
+Nachos network warning\
+You will need to make a small change to the postoffice::send\
+. Near the top-first executable line add one line usleep(50); sleeps the cumin process for 50 microseconds\
+Every user program must do createlock, createCV, createmv, for every lock/cv/mv they need.\
+I suggest this approach:\
+	files:\
+	. creates.h\
+	void doCreates() \{\}\
+use this creates.h in each entities user program\
+\
+Distributed mutual exclusion\
+3 Basic ways\
+Centralized\
+Fully distributed\
+	. no centralized server ( one machine makes the whole decisions)\
+Token Ring\
+Centralized\
+	. have 1 mutual exclusion server\
+	. It handles requests from clients to enter a critical region\
+	. If no client in that C.R, the replies with an OK msg\
+	. if a client is in that C.R, the server queues the request\
+Upon exiting a C.R, a client sends a release msg to the server	. If a client is waiting for the C.R, the server sends 1 ok msg\
+Requirement: Each client must have 1 unique id\
+	+ Correct\
+	+ Fair\
+	- Single point of failure \
+	- Scalability \
+Fully distributed approach\
+No central servers\
+	. All client work together\
+	. No central decision making \
+		. All entities make same decisions in the same order\
+Requirements: \
+1. Reliable communication\
+	. No lost messages\
+2. Globally unique id for each member\
+3. Total ordering of events\
+	. An event, in a distributed system, is a send/receive\
+	. All group members to agree on the send order of messages => times tamp needed in msg\
+	. messages will be received in an order different from send order\
+\
+Algorithm\
+1. A member sends a Request msg to all group members\
+	msg contains: id of C.R., timestamp(send time), id of requesting member\
+2. A member processing  a request msg can be in 1 of 3 states.\
+	a. member is not in that C.R. & has no pending request for that C.R.\
+	b. member is in that C.R.\
+	c. member has a pending request for that C.R\
+3. How/When to respond\
+	a. send a OK msg to requestor\
+	b. Queue the request, when I exit the C.R., send OK msgs to all queued requests for that C.R.\
+	c. Compare timestamps (we use globally unique ID to break ties)\
+		. If my timestamp earlier => like b\
+		. If my timestamp later => like a\
+C.R. Entry Rule: A member can enter the C.R. after receiving Ok messages from all other members\
+\
+Will it work?\
+Worst Case: All members send a Request for a C.R. @ the same time\
+\
+Variation #1 - Always send a reply\
+Member will send OK(like before), or not ok if the request is to be queued\
+-Still N points of failure\
+. member dies in C.R\
+\
+Variation #2 - majority rules\
+2 new rules\
+1. A member can enter a C.R. with n/2+1 ok msgs\
+2. members only send 1 OK msg when they receive a release msg - new msg\
++ N/2 - 1 members can die without affecting the algorithm\
+\
+Token Ring Algorithm\
+Requirements\
+1. members have a globally unique id\
+2. reliable communication \
+3. members know the ring order of all members\
+For each C.R., there is a Token msg\
+	. It contains the C.R. identifier\
+To enter a C.R, a member must have the Token msg for that C.R.\
+If a member receives a Token msg, and they do not want to enter that C.R., they forward the msg\
++ Correct\
++ Fair\
+- Single point of failure: member with the Token dies\
+
+\i\b \
+April. 5\
+\
+
+\i0\b0 Project 4 part 2 (variation)\
+You are implementing an extension of the fully distributed mutual exclusion algorithm between your servers\
+Every server will process every client server\
+	. For this to work, each server must process the client request message in the same order => done through total ordering\
+\
+2 major tasks\
+1. when a server receives a client request msg, it immediately forwards the msg to all other servers. Forwarding server must add extra information to the client msg such as timestamp, forwarding server machine id & mailbox number\
+Do not lose: client machine id & mailbox #\
+2. Implement total ordering \
+Mechanism by which we ensure that all servers process all client request messages in the same order. \
+\
+Data\
+1. sorted(by timestamp & forwarding server machine id) queue of pending client request messages - messages waiting to be processed. Nachos List class has sorted insert & sorted remove\
+2. Last timestamp received table\
+An array (use server machine id as index) of timestamp value - 1value for each server, only the last timestamp from each server\
+\
+Total ordering algorithm\
+1. A server receives a server forwarded msg\
+2. Extract timestamp & forwarding server machine id\
+3. put the request msg in the pending message queue in sorted order.\
+4. update the last timestamp received table with the timestamp of the new msg for the forwarding server's machine id\
+5. scan the L.T.R table & extract the smallest timestamp\
+6. process any msg in our pending msg queue having a timestamp less than or equal to the step 5 value\
+\
+Total ordering pseudocode\
+While(true) \
+\{\
+postoffice->Receive();\
+// Do steps 1-5 if the msg is a server-forwarded msg\
+step 5b. Retrieve the first msg fro pending msg queue\
+step 6. while(// timestamp of msg in 5,6 from timestamp from step 5)\
+// process the msg\
+//retrieve the next msg from pending msg queue\
+\}\
+put the last extracted msg back in the queue\
+\}\
+\
+Ensuring all messages are processed\
+Must add a mechanism to ensure that all server timestamps continue to increase even if they do not receive client request msgs.\
+Method #1\
+every time a server receives a server-forwarded msg, send a timestamp msg to all other servers\
+Method #2\
+Heartbeat msg every X seconds, send a timestamp msg to all servers\
+	. use Nachos Timer class\
+	. You must write code to enforce the real time "X seconds" delay\
+\
+Time on Aludra\
+aludra clock is only updated once per second\
+You should use the microseconds time capability, watch out for microseconds, starting over @ zero\
+\
+Server organization for total ordering\
+I would use 2 threads for each server\
+1st thread: only receives client msgs and forward to all servers\
+2nd thread: implement total ordering & msg processing, only server forwarded msgs\
+\
+
+\i\b April. 10
+\i0\b0 \
+\
+d \
+Final Exam\
+May 8th, Tuesday 11-1pm SLH 200\
+\
+Topics\
+1. p3_3, p4\
+2. RPCs \
+3. Distributed coordination\
+	. Mutual Exclusion\
+	. Election Algorithms\
+Distributed hardware \
+	. Multi-computer\
+	. Multi-processor\
+Fault tolerant systems\
+Distributed OSes\
+\
+NOT ON FINAL\
+Real-time scheduling\
+Naming\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}

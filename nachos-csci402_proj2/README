@@ -1,0 +1,36 @@
+Nachos is instructional software for teaching undergraduate, and potentially
+graduate, level operating systems courses.  The Nachos distribution
+comes with: 
+
+   simple baseline code for a working operating system
+   a simulator for a generic personal computer/workstation
+
+The assignments illustrate and explore all areas of modern operating
+systems, including threads and concurrency, multiprogramming, 
+system calls, virtual memory, software-loaded TLB's, file systems, 
+network protocols, remote procedure call, and distributed systems.
+
+To get started, you should:
+  1. lpr nachos.ps  -- print out the paper describing nachos
+  2. cd code; make print -- print out the nachos source code
+  3. cd code/c++example; lpr *.ps *.h *.cc -- print out C++ primer
+  4. cd code; gmake all -- compile nachos source code
+
+The basic Nachos system was written for a MIPS workstation.  It has
+been ported to other platforms, but as of now, there are a few gotchas.
+The Nachos kernel and machine simulator run directly on the host machine,
+but user-level programs running on top of Nachos are simulated instruction-by-
+instruction.  The simulator assumes MIPS object code, in little endian format.
+It would take much more work to complete the port and change the CPU 
+simulator to simulate other instruction sets (although this is under
+investigation).  Keeping the MIPS CPU causes a one problem:
+
+The Nachos kernel runs runs native mode while the user programs
+runs on the simulated CPU.  This is a little weird on the non-MIPS workstations
+because the user programs are using little endian (typically) and the kernel is
+using big endian.  Some information (such as the argv[] array) that
+is passed between the kernel and the user though user memory must be
+byte swapped.  (Unfortunately, this isn't as easy to fix as simply
+cross-compiling to the SGI MIPS, which is big endian; in a few places,
+the simulation assumes little endian format.  We're working on fixing this.) 
+
